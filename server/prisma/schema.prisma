@@ -1,0 +1,188 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CLIENT
+  ADMIN
+}
+
+enum CardType {
+  STANDARD
+  BONUS
+  GOLD
+  SOCIAL
+}
+
+enum OrderStatus {
+  PENDING
+  IN_PROGRESS
+  READY
+  DELIVERED
+  CANCELLED
+}
+
+enum DeliveryType {
+  COURIER
+  PICKUP
+}
+
+enum PackagingType {
+  STANDARD
+  PREMIUM
+  ECO
+}
+
+
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  password      String
+  firstName     String
+  lastName      String
+  phone         String?
+  role          Role     @default(CLIENT)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  clientCard    ClientCard?
+  orders        Order[]
+  notifications Notification[]
+}
+
+model ClientCard {
+  id                  String   @id @default(uuid())
+  type                CardType
+  bonusPoints         Int      @default(0)
+  deliveryDiscountPercent Int  @default(0) 
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  userId              String   @unique
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model EventType {
+  id        String    @id @default(uuid())
+  name      String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  
+  bouquets  Bouquet[]
+}
+
+model Bouquet {
+  id           String           @id @default(uuid())
+  name         String
+  description  String
+  price        Float
+  imageUrl     String?
+  isCustom     Boolean          @default(false)
+  isActive     Boolean          @default(true)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  eventTypeId  String?
+  eventType    EventType?       @relation(fields: [eventTypeId], references: [id], onDelete: SetNull)
+
+  flowers      BouquetFlower[]
+  orderItems   OrderItem[]
+}
+
+model Flower {
+  id        String @id @default(uuid())
+  name      String
+  price     Float
+  imageUrl  String?
+  isActive  Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  bouquets  BouquetFlower[]
+}
+
+model BouquetFlower {
+  bouquetId String
+  flowerId  String
+  quantity  Int
+
+  bouquet   Bouquet @relation(fields: [bouquetId], references: [id], onDelete: Cascade)
+  flower    Flower  @relation(fields: [flowerId], references: [id], onDelete: Cascade)
+
+  @@id([bouquetId, flowerId])
+}
+
+model Order {
+  id              String      @id @default(uuid())
+  status          OrderStatus @default(PENDING)
+  totalPrice      Float
+  deliveryAddress String?
+  deliveryDate    DateTime?
+  notes           String?
+  discountCode    String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  userId          String
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  deliveryId      String?
+  delivery        Delivery?   @relation(fields: [deliveryId], references: [id], onDelete: SetNull)
+
+  packagingId     String?
+  packaging       Packaging?  @relation(fields: [packagingId], references: [id], onDelete: SetNull)
+
+  items           OrderItem[]
+}
+
+model OrderItem {
+  id         String   @id @default(uuid())
+  quantity   Int
+  price      Float
+  createdAt  DateTime @default(now())
+
+  orderId    String
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  bouquetId  String?
+  bouquet    Bouquet? @relation(fields: [bouquetId], references: [id], onDelete: SetNull)
+}
+
+model Delivery {
+  id        String   @id @default(uuid())
+  type      DeliveryType
+  price     Float
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders    Order[]
+}
+
+model Packaging {
+  id        String   @id @default(uuid())
+  type      PackagingType
+  price     Float
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders    Order[]
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  message   String
+  isRead    Boolean  @default(false)
+  type      String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
