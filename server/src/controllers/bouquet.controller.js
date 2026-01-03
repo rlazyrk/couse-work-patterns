@@ -4,14 +4,13 @@ class BouquetController {
   }
 
   async getAll(req, res, next) {
-    if (req.params.id) next();
     try {
       const { eventTypeId, isActive, isCustom } = req.query;
 
       const where = {};
       if (eventTypeId) where.eventTypeId = eventTypeId;
       if (isActive !== undefined) where.isActive = isActive === "true";
-      if (isCustom !== undefined) where.isCustom = isCustom === "true";
+      if (isCustom !== false) where.isCustom = isCustom === "true";
 
       const bouquets = await this.bouquetRepository.getAll(where);
 
