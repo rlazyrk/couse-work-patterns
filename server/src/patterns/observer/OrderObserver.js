@@ -10,7 +10,7 @@ class NotificationObserver extends OrderObserver {
     this.prisma = prisma;
   }
 
-  async update(order, event) {
+  async update(order, event, data = {}) {
     const notifications = {
       IN_PROGRESS: {
         message: `Ваше замовлення #${order.id.slice(0, 8)} прийнято в роботу`,
@@ -56,7 +56,7 @@ class BonusObserver extends OrderObserver {
     this.prisma = prisma;
   }
 
-  async update(order, event) {
+  async update(order, event, data = {}) {
     if (event === "DELIVERED") {
       const user = await this.prisma.user.findUnique({
         where: { id: order.userId },
@@ -93,6 +93,35 @@ class BonusObserver extends OrderObserver {
   }
 }
 
+class BonusUsedObserver extends OrderObserver {
+  constructor(prisma) {
+    super();
+    this.prisma = prisma;
+  }
+
+  async update(order, event, data = {}) {
+    if (
+      event === "BONUS_USED" &&
+      data.bonusPointsUsed &&
+      data.bonusPointsUsed > 0
+    ) {
+      await this.prisma.notification.create({
+        data: {
+          userId: order.userId,
+          message: `Використано ${
+            data.bonusPointsUsed
+          } бонусних балів для оплати замовлення #${order.id.slice(0, 8)}`,
+          type: "BONUS_USED",
+          metadata: {
+            orderId: order.id,
+            bonusPointsUsed: data.bonusPointsUsed,
+          },
+        },
+      });
+    }
+  }
+}
+
 class OrderSubject {
   constructor() {
     this.observers = [];
@@ -106,10 +135,10 @@ class OrderSubject {
     this.observers = this.observers.filter((obs) => obs !== observer);
   }
 
-  async notify(order, event) {
+  async notify(order, event, data = {}) {
     for (const observer of this.observers) {
       try {
-        await observer.update(order, event);
+        await observer.update(order, event, data);
       } catch (error) {
         console.error("Observer error:", error);
       }
@@ -117,4 +146,10 @@ class OrderSubject {
   }
 }
 
-export { OrderSubject, OrderObserver, NotificationObserver, BonusObserver };
+export {
+  OrderSubject,
+  OrderObserver,
+  NotificationObserver,
+  BonusObserver,
+  BonusUsedObserver,
+};

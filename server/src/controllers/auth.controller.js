@@ -25,9 +25,8 @@ class AuthController {
         lastName,
         phone
       );
-      if (cardType) {
-        await this.cardRepository.create(cardType, user.id);
-      }
+      const finalCardType = cardType || "STANDARD";
+      await this.cardRepository.create(finalCardType, user.id);
 
       const token = jwt.sign(
         { userId: user.id, email: user.email, role: user.role },

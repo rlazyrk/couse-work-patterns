@@ -2,6 +2,7 @@ import {
   OrderSubject,
   NotificationObserver,
   BonusObserver,
+  BonusUsedObserver,
 } from "../patterns/observer/OrderObserver.js";
 import { DeliveryDiscountContext } from "../patterns/strategy/DeliveryDiscountStrategy.js";
 
@@ -14,6 +15,7 @@ class OrderService {
 
     this.orderSubject.attach(new NotificationObserver(provider.prisma));
     this.orderSubject.attach(new BonusObserver(provider.prisma));
+    this.orderSubject.attach(new BonusUsedObserver(provider.prisma));
   }
 
   async createOrder(userId, orderData) {
@@ -24,6 +26,7 @@ class OrderService {
       deliveryAddress,
       deliveryDate,
       notes,
+      bonusPointsToUse,
     } = orderData;
 
     const user = await this.orderRepository.getUserWithCard(userId);
@@ -86,6 +89,30 @@ class OrderService {
       }
     }
 
+
+    let bonusPointsUsed = 0;
+    if (bonusPointsToUse && bonusPointsToUse > 0 && user?.clientCard) {
+      const cartTotal = orderItems.reduce((sum, item) => sum + item.price, 0);
+      const maxBonusPoints = Math.floor(cartTotal * 0.5); 
+      const availableBonusPoints = user.clientCard.bonusPoints || 0;
+      
+      bonusPointsUsed = Math.min(
+        bonusPointsToUse,
+        maxBonusPoints,
+        availableBonusPoints,
+        totalPrice 
+      );
+      
+      if (bonusPointsUsed > 0) {
+        totalPrice = Math.max(0, totalPrice - bonusPointsUsed);
+        
+        await this.provider.clientCardRepository.addBonusPoints(
+          user.clientCard.id,
+          -bonusPointsUsed
+        );
+      }
+    }
+
     const orderPayload = {
       userId,
       status: "PENDING",
@@ -99,6 +126,11 @@ class OrderService {
     };
 
     const order = await this.orderRepository.createOrder(orderPayload);
+    
+    // Сповіщення про використання бонусів через обсервер
+    if (bonusPointsUsed > 0) {
+      await this.orderSubject.notify(order, "BONUS_USED", { bonusPointsUsed });
+    }
     
     await this.orderSubject.notify(order, "PENDING");
 
@@ -114,7 +146,6 @@ class OrderService {
       newStatus
     );
 
-    // Сповіщення про зміну статусу
     await this.orderSubject.notify(updatedOrder, newStatus);
 
     return updatedOrder;

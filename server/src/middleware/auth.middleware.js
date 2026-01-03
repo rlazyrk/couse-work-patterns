@@ -27,6 +27,28 @@ export const authenticate = async (req, res, next) => {
   }
 };
 
+export const authenticateOptional = async (req, res, next) => {
+  try {
+    const token =
+      req.headers.authorization?.split(" ")[1] || req.cookies?.token;
+
+    if (!token) {
+      return next(); // Продовжуємо без авторизації
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await provider.userRepository.getByIdWithCard(decoded.userId);
+
+    if (user) {
+      req.user = user;
+    }
+    next();
+  } catch (error) {
+    // Якщо токен невалідний, просто продовжуємо без req.user
+    next();
+  }
+};
+
 export const authorize = (...roles) => {
   return (req, res, next) => {
     if (!req.user) {

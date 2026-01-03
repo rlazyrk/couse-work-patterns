@@ -10,6 +10,10 @@ router.get("/", (req, res, next) => {
   deliveryController.getAll(req, res, next);
 });
 
+router.get("/:id/calculate-price", authenticate, (req, res, next) => {
+  deliveryController.calculatePrice(req, res, next);
+});
+
 router.get("/:id", (req, res, next) => {
   deliveryController.getById(req, res, next);
 });

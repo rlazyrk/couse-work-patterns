@@ -44,8 +44,23 @@ export class AuthRepository {
         clientCard: true,
 
         orders: {
-          take: 5,
           orderBy: { createdAt: "desc" },
+          include: {
+            items: {
+              include: {
+                bouquet: {
+                  select: {
+                    id: true,
+                    name: true,
+                    imageUrl: true,
+                    price: true,
+                  },
+                },
+              },
+            },
+            delivery: true,
+            packaging: true,
+          },
         },
       },
     });

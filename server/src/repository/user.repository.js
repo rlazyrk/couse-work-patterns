@@ -4,13 +4,7 @@ export class UserRepository {
   }
 
   async getAll() {
-    return await this.prisma.user.findMany({
-      include: {
-        clientCard: true,
-        _count: {
-          select: { orders: true },
-        },
-      },
+    return this.prisma.user.findMany({
       select: {
         id: true,
         email: true,
@@ -18,9 +12,15 @@ export class UserRepository {
         lastName: true,
         phone: true,
         role: true,
-        clientCard: true,
         createdAt: true,
-        _count: true,
+
+        clientCard: true,
+
+        _count: {
+          select: {
+            orders: true,
+          },
+        },
       },
     });
   }

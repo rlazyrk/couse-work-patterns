@@ -2,9 +2,45 @@ export class BouquetRepository {
   constructor(prisma) {
     this.prisma = prisma;
   }
-  async getAll(where) {
+  async getAll(where, search, priceMin, priceMax) {
+    const whereClause = { ...where };
+
+
+    if (search && search.trim()) {
+      const searchTerm = search.trim();
+      if (Object.keys(whereClause).length > 0) {
+        whereClause.AND = [
+          ...(whereClause.AND || []),
+          {
+            OR: [
+              { name: { contains: searchTerm, mode: "insensitive" } },
+              { description: { contains: searchTerm, mode: "insensitive" } },
+            ],
+          },
+        ];
+        delete whereClause.OR;
+      } else {
+        whereClause.OR = [
+          { name: { contains: searchTerm, mode: "insensitive" } },
+          { description: { contains: searchTerm, mode: "insensitive" } },
+        ];
+      }
+    }
+
+
+    const priceFilter = {};
+    if (priceMin !== undefined && priceMin !== null && priceMin > 0) {
+      priceFilter.gte = parseFloat(priceMin);
+    }
+    if (priceMax !== undefined && priceMax !== null && priceMax > 0) {
+      priceFilter.lte = parseFloat(priceMax);
+    }
+    if (Object.keys(priceFilter).length > 0) {
+      whereClause.price = priceFilter;
+    }
+
     return await this.prisma.bouquet.findMany({
-      where: where,
+      where: whereClause,
       include: {
         eventType: true,
         flowers: {
@@ -38,7 +74,8 @@ export class BouquetRepository {
     imageUrl,
     isCustom,
     eventTypeId,
-    flowers
+    flowers,
+    createdById = null
   ) {
     return await this.prisma.bouquet.create({
       data: {
@@ -48,6 +85,7 @@ export class BouquetRepository {
         imageUrl: imageUrl || null,
         isCustom: isCustom || false,
         eventTypeId: eventTypeId || null,
+        createdById: createdById || null,
         flowers: flowers
           ? {
               create: flowers.map((f) => ({
