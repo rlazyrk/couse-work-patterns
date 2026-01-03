@@ -7,10 +7,12 @@ import { FlowerRepository } from "../../repository/flower.repository.js";
 import { NotificationRepository } from "../../repository/notification.repository.js";
 import { DeliveryRepository } from "../../repository/delivery.repository.js";
 import { OrderRepository } from "../../repository/order.repository.js";
+import { EventTypeRepository } from "../../repository/eventType.repository.js";
 import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 const provider = {
+  eventTypeRepository: new EventTypeRepository(prisma),
   authRepository: new AuthRepository(prisma),
   bouquetRepository: new BouquetRepository(prisma),
   clientCardRepository: new ClientCardRepository(prisma),
