@@ -53,7 +53,7 @@ export class UserRepository {
   }
   async getByIdWithCard(id) {
     return await this.prisma.user.findUnique({
-      where: { id: decoded.userId },
+      where: { id },
       include: { clientCard: true },
     });
   }

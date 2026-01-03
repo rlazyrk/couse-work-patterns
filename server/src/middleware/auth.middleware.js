@@ -11,7 +11,10 @@ export const authenticate = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await provider.userRepository.getByIdWithCard(id);
+    console.log(decoded);
+    console.log(decoded.userId);
+    const user = await provider.userRepository.getByIdWithCard(decoded.userId);
+    console.log(user);
 
     if (!user) {
       return res.status(401).json({ error: "User not found" });
