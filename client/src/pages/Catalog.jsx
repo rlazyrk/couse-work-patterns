@@ -2,6 +2,7 @@ import Header from "../components/Header";
 import BouquetCard from "../components/BouquetCard";
 import { Link, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
+import Footer from "../components/Footer";
 
 const BASE = import.meta.env.VITE_API_BASE || "";
 
@@ -11,23 +12,73 @@ export default function Catalog() {
   const [error, setError] = useState(null);
   const [eventTypes, setEventTypes] = useState([]);
 
-  // filters
   const [search, setSearch] = useState("");
   const [selectedEventTypes, setSelectedEventTypes] = useState([]);
   const [priceMin, setPriceMin] = useState(0);
   const [priceMax, setPriceMax] = useState(0);
   const location = useLocation();
 
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadInitial() {
+      try {
+        const res = await fetch(
+          `${BASE}/api/bouquets?isActive=true&isCustom=false`
+        );
+        if (!res.ok) return;
+        const body = await res.json();
+        if (mounted && body.bouquets && body.bouquets.length > 0) {
+          const prices = body.bouquets.map((b) => Number(b.price || 0));
+          const min = Math.min(...prices);
+          const max = Math.max(...prices);
+          if (priceMin === 0 && priceMax === 0) {
+            setPriceMin(min);
+            setPriceMax(max);
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    loadInitial();
+    return () => (mounted = false);
+  }, []);
+
+
   useEffect(() => {
     let mounted = true;
     async function load() {
       try {
         setLoading(true);
-        const res = await fetch(`${BASE}/api/bouquets`);
-        console.log(res);
+
+        const params = new URLSearchParams();
+        if (selectedEventTypes.length > 0) {
+          params.append("eventTypeIds", selectedEventTypes.join(","));
+        }
+        if (search.trim()) {
+          params.append("search", search.trim());
+        }
+        if (priceMin > 0) {
+          params.append("priceMin", priceMin.toString());
+        }
+        if (priceMax > 0 && priceMax !== priceMin) {
+          params.append("priceMax", priceMax.toString());
+        }
+        params.append("isActive", "true");
+        params.append("isCustom", "false");
+
+        const queryString = params.toString();
+        const url = `${BASE}/api/bouquets${
+          queryString ? `?${queryString}` : ""
+        }`;
+
+        const res = await fetch(url);
         if (!res.ok) throw new Error(`Failed to load (${res.status})`);
         const body = await res.json();
-        if (mounted) setBouquets(body.bouquets || []);
+        if (mounted) {
+          setBouquets(body.bouquets || []);
+        }
       } catch (e) {
         if (mounted) setError(e.message || "Load error");
       } finally {
@@ -36,9 +87,8 @@ export default function Catalog() {
     }
     load();
     return () => (mounted = false);
-  }, []);
+  }, [search, selectedEventTypes, priceMin, priceMax]);
 
-  // load event types for filter
   useEffect(() => {
     let mounted = true;
     async function loadTypes() {
@@ -56,17 +106,7 @@ export default function Catalog() {
     return () => (mounted = false);
   }, []);
 
-  // update price range when bouquets change
-  useEffect(() => {
-    if (!bouquets || bouquets.length === 0) return;
-    const prices = bouquets.map((b) => Number(b.price || 0));
-    const min = Math.min(...prices);
-    const max = Math.max(...prices);
-    setPriceMin(min);
-    setPriceMax(max);
-  }, [bouquets]);
 
-  // update search from URL query param `q`
   useEffect(() => {
     const q = new URLSearchParams(location.search).get("q") || "";
     setSearch(q);
@@ -81,145 +121,205 @@ export default function Catalog() {
   function resetFilters() {
     setSearch("");
     setSelectedEventTypes([]);
-    const prices = bouquets.map((b) => Number(b.price || 0));
-    setPriceMin(prices.length ? Math.min(...prices) : 0);
-    setPriceMax(prices.length ? Math.max(...prices) : 0);
+    setPriceMin(0);
+    setPriceMax(0);
   }
 
-  const filteredBouquets = bouquets.filter((b) => {
-    const q = search.trim().toLowerCase();
-    const matchesSearch =
-      !q ||
-      (b.name && b.name.toLowerCase().includes(q)) ||
-      (b.description && b.description.toLowerCase().includes(q));
-    const matchesEvent =
-      selectedEventTypes.length === 0 ||
-      selectedEventTypes.includes(b.eventTypeId);
-    const price = Number(b.price || 0);
-    const matchesPrice = price >= (priceMin || 0) && price <= (priceMax || 0);
-    return matchesSearch && matchesEvent && matchesPrice;
-  });
-
   return (
-    <div>
-      <Header />
+    <>
+      <div>
+        <Header />
 
-      <main style={{ padding: 24 }}>
-        <h2>Каталог</h2>
-        <p>Нижче відображається список букетй з ціною та описом.</p>
+        <main className="container" style={{ padding: "var(--spacing-xl) 0" }}>
+          <div style={{ marginBottom: "var(--spacing-xl)" }}>
+            <h2>Каталог букетів</h2>
+            <p style={{ color: "var(--color-text-secondary)" }}>
+              Знайдіть ідеальний букет для будь-якої події
+            </p>
+          </div>
 
-        {loading && <div>Loading bouquets...</div>}
-        {error && <div style={{ color: "red" }}>{error}</div>}
+          {loading && <div className="loading">Завантаження букетів...</div>}
+          {error && (
+            <div
+              className="text-error"
+              style={{
+                padding: "var(--spacing-md)",
+                backgroundColor: "var(--color-bg)",
+                borderRadius: "var(--radius-md)",
+                marginBottom: "var(--spacing-md)",
+              }}
+            >
+              {error}
+            </div>
+          )}
 
-        <section style={{ marginTop: 24, display: "flex", gap: 16 }}>
-          <aside style={{ width: 280, padding: 12, border: "1px solid #eee" }}>
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ fontWeight: 600, marginBottom: 8 }}>
-                Типи івентів
-              </div>
-              {eventTypes.length === 0 && (
-                <div style={{ color: "#666" }}>Немає типів</div>
-              )}
-              {eventTypes.map((et) => (
+          <section
+            style={{
+              display: "flex",
+              gap: "var(--spacing-lg)",
+              alignItems: "flex-start",
+              flexWrap: "wrap",
+            }}
+          >
+            <aside
+              className="card"
+              style={{
+                width: "280px",
+                padding: "var(--spacing-lg)",
+                position: "sticky",
+                top: "90px",
+                flex: "0 0 280px",
+              }}
+            >
+              <h3
+                style={{
+                  fontSize: "1.25rem",
+                  marginBottom: "var(--spacing-md)",
+                }}
+              >
+                Фільтри
+              </h3>
+
+              <div style={{ marginBottom: "var(--spacing-lg)" }}>
                 <label
-                  key={et.id}
-                  style={{ display: "block", marginBottom: 6 }}
+                  style={{
+                    marginBottom: "var(--spacing-sm)",
+                    display: "block",
+                  }}
+                >
+                  Типи подій
+                </label>
+                {eventTypes.length === 0 && (
+                  <div className="text-muted" style={{ fontSize: "14px" }}>
+                    Немає доступних типів
+                  </div>
+                )}
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "var(--spacing-sm)",
+                  }}
+                >
+                  {eventTypes.map((et) => (
+                    <label
+                      key={et.id}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        cursor: "pointer",
+                        padding: "var(--spacing-sm)",
+                        borderRadius: "var(--radius-sm)",
+                        transition: "background-color var(--transition-fast)",
+                      }}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.backgroundColor =
+                          "var(--color-bg-light)")
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.backgroundColor = "transparent")
+                      }
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedEventTypes.includes(et.id)}
+                        onChange={() => toggleEventType(et.id)}
+                      />
+                      <span>{et.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ marginBottom: "var(--spacing-lg)" }}>
+                <label
+                  style={{
+                    marginBottom: "var(--spacing-sm)",
+                    display: "block",
+                  }}
+                >
+                  Діапазон ціни (₴)
+                </label>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "var(--spacing-sm)",
+                    marginBottom: "var(--spacing-sm)",
+                  }}
                 >
                   <input
-                    type="checkbox"
-                    checked={selectedEventTypes.includes(et.id)}
-                    onChange={() => toggleEventType(et.id)}
-                    style={{ marginRight: 8 }}
+                    type="number"
+                    value={priceMin}
+                    onChange={(e) => setPriceMin(Number(e.target.value || 0))}
+                    placeholder="Від"
+                    min="0"
                   />
-                  {et.name}
-                </label>
-              ))}
-            </div>
-
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ fontWeight: 600, marginBottom: 8 }}>
-                Типи івентів
-              </div>
-              {eventTypes.length === 0 && (
-                <div style={{ color: "#666" }}>Немає типів</div>
-              )}
-              {eventTypes.map((et) => (
-                <label
-                  key={et.id}
-                  style={{ display: "block", marginBottom: 6 }}
-                >
                   <input
-                    type="checkbox"
-                    checked={selectedEventTypes.includes(et.id)}
-                    onChange={() => toggleEventType(et.id)}
-                    style={{ marginRight: 8 }}
+                    type="number"
+                    value={priceMax}
+                    onChange={(e) => setPriceMax(Number(e.target.value || 0))}
+                    placeholder="До"
+                    min="0"
                   />
-                  {et.name}
-                </label>
-              ))}
-            </div>
+                </div>
+                <div className="text-muted" style={{ fontSize: "12px" }}>
+                  Від {priceMin} ₴ до {priceMax} ₴
+                </div>
+              </div>
 
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ fontWeight: 600, marginBottom: 8 }}>
-                Фільтр за ціною
-              </div>
-              <div style={{ display: "flex", gap: 8 }}>
-                <input
-                  type="number"
-                  value={priceMin}
-                  onChange={(e) => setPriceMin(Number(e.target.value || 0))}
-                  style={{ width: "50%", padding: 6 }}
-                />
-                <input
-                  type="number"
-                  value={priceMax}
-                  onChange={(e) => setPriceMax(Number(e.target.value || 0))}
-                  style={{ width: "50%", padding: 6 }}
-                />
-              </div>
-              <div style={{ marginTop: 8, fontSize: 12, color: "#666" }}>
-                Від {priceMin} до {priceMax}
-              </div>
-            </div>
-
-            <div>
               <button
                 type="button"
                 onClick={resetFilters}
-                style={{ padding: "8px 12px" }}
+                className="btn-secondary btn-small"
+                style={{ width: "100%" }}
               >
                 Скинути фільтри
               </button>
-            </div>
-          </aside>
+            </aside>
 
-          <div style={{ flex: 1 }}>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fill,minmax(240px,1fr))",
-                gap: 12,
-              }}
-            >
-              {!loading && filteredBouquets.length === 0 && (
-                <div style={{ gridColumn: "1/-1", color: "#666" }}>
-                  Поки що немає товарів за вашим запитом.
+            <div style={{ flex: 1, minWidth: "280px" }}>
+              {!loading && bouquets.length === 0 && (
+                <div
+                  className="card"
+                  style={{ padding: "var(--spacing-2xl)", textAlign: "center" }}
+                >
+                  <p className="text-muted" style={{ fontSize: "18px" }}>
+                    Поки що немає товарів за вашим запитом.
+                  </p>
+                  <p
+                    style={{
+                      marginTop: "var(--spacing-sm)",
+                      color: "var(--color-text-secondary)",
+                    }}
+                  >
+                    Спробуйте змінити параметри фільтрів
+                  </p>
                 </div>
               )}
 
-              {filteredBouquets.map((b) => (
-                <Link
-                  key={b.id}
-                  to={`/bouquets/${b.id}`}
-                  style={{ textDecoration: "none", color: "inherit" }}
-                >
-                  <BouquetCard bouquet={b} />
-                </Link>
-              ))}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns:
+                    "repeat(auto-fill, minmax(min(260px, 100%), 1fr))",
+                  gap: "var(--spacing-lg)",
+                }}
+              >
+                {bouquets.map((b) => (
+                  <Link
+                    key={b.id}
+                    to={`/bouquets/${b.id}`}
+                    style={{ textDecoration: "none", color: "inherit" }}
+                  >
+                    <BouquetCard bouquet={b} />
+                  </Link>
+                ))}
+              </div>
             </div>
-          </div>
-        </section>
-      </main>
-    </div>
+          </section>
+        </main>
+      </div>
+      <Footer />
+    </>
   );
 }

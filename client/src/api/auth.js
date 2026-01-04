@@ -49,7 +49,7 @@ export async function getMe() {
   return request("/api/auth/me", {
     method: "GET",
     headers: {
-      ...authHeaders(), // Це автоматично додасть Bearer токен
+      ...authHeaders(), 
       "Content-Type": "application/json",
     },
   });

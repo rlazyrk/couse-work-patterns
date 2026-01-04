@@ -46,12 +46,11 @@ const useCart = create((set, get) => ({
     ),
 }));
 
-// persist on changes
 useCart.subscribe((state) => {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state.items || []));
   } catch (e) {
-    // ignore
+    console.error(e);
   }
 });
 

@@ -19,7 +19,7 @@ export const registerSchema = z.object({
   cardType: z.string().optional(),
 });
 
-// ensure passwords match
+
 export const registerSchemaWithConfirm = registerSchema.refine(
   (data) => data.password === data.confirmPassword,
   {
@@ -33,13 +33,14 @@ export const orderSchema = z.object({
     .array(z.object({ bouquetId: z.string(), quantity: z.number().min(1) }))
     .min(1, { message: "Кошик порожній" }),
   deliveryId: z.string().nullable().optional(),
-  packagingId: z.string().nullable().optional(),
+  packagingId: z.string().min(1, { message: "Оберіть упаковку" }),
   deliveryAddress: z
     .string()
     .min(5, { message: "Вкажіть адресу доставки" })
     .nullable()
     .optional(),
   notes: z.string().optional(),
+  bonusPointsToUse: z.number().int().min(0).nullable().optional(),
 });
 
 export default { loginSchema, registerSchema, orderSchema };

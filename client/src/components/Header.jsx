@@ -13,7 +13,7 @@ export default function Header() {
     try {
       clearCart();
     } catch (e) {
-      // ignore
+      console.error(e);
     }
     logout();
     navigate("/login");
@@ -33,7 +33,7 @@ export default function Header() {
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
-      padding: "0 40px",
+      padding: "0 clamp(16px, 4vw, 40px)",
       height: "70px",
       backgroundColor: "#fff",
       boxShadow: "0 2px 10px rgba(0,0,0,0.05)",
@@ -41,6 +41,7 @@ export default function Header() {
       top: 0,
       zIndex: 1000,
       fontFamily: "'Segoe UI', Roboto, sans-serif",
+      gap: "12px",
     },
     left: {
       display: "flex",
@@ -48,6 +49,7 @@ export default function Header() {
       gap: 12,
       textDecoration: "none",
       color: colors.text,
+      flexShrink: 0,
     },
     logo: {
       width: 42,
@@ -61,18 +63,21 @@ export default function Header() {
       fontSize: "20px",
       fontWeight: "bold",
       boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
+      flexShrink: 0,
     },
     logoText: {
-      fontSize: "22px",
+      fontSize: "clamp(16px, 2vw, 22px)",
       fontWeight: 800,
       letterSpacing: "-0.5px",
       color: colors.primary,
+      whiteSpace: "nowrap",
     },
     center: {
       flex: 1,
       display: "flex",
       justifyContent: "center",
-      padding: "0 20px",
+      padding: "0 12px",
+      minWidth: 0,
     },
     searchWrapper: { position: "relative", width: "100%", maxWidth: "500px" },
     search: {
@@ -86,7 +91,13 @@ export default function Header() {
       outline: "none",
       transition: "all 0.3s ease",
     },
-    right: { display: "flex", alignItems: "center", gap: 15 },
+    right: {
+      display: "flex",
+      alignItems: "center",
+      gap: "clamp(8px, 2vw, 15px)",
+      flexShrink: 0,
+      flexWrap: "nowrap",
+    },
     cartBtn: {
       background: "none",
       border: "none",
@@ -94,9 +105,11 @@ export default function Header() {
       cursor: "pointer",
       position: "relative",
       transition: "transform 0.2s",
+      padding: "4px",
     },
     btn: {
-      padding: "8px 20px",
+      width: "100%",
+      padding: "8px clamp(12px, 2vw, 20px)",
       borderRadius: "20px",
       border: `1px solid ${colors.primary}`,
       background: "transparent",
@@ -105,10 +118,11 @@ export default function Header() {
       cursor: "pointer",
       transition: "all 0.3s ease",
       textDecoration: "none",
-      fontSize: "14px",
+      fontSize: "clamp(12px, 1.5vw, 14px)",
+      whiteSpace: "nowrap",
     },
     btnPrimary: {
-      padding: "8px 20px",
+      padding: "8px clamp(12px, 2vw, 20px)",
       borderRadius: "20px",
       border: "none",
       background: colors.primary,
@@ -117,6 +131,8 @@ export default function Header() {
       cursor: "pointer",
       transition: "all 0.3s ease",
       boxShadow: "0 4px 10px rgba(45, 90, 39, 0.2)",
+      fontSize: "clamp(12px, 1.5vw, 14px)",
+      whiteSpace: "nowrap",
     },
   };
 
@@ -132,7 +148,7 @@ export default function Header() {
     <header style={styles.header}>
       <Link to="/" style={styles.left}>
         <div style={styles.logo}>F</div>
-        <div style={styles.logoText}>Flowerly</div>
+        <div style={styles.logoText}>Flowers</div>
       </Link>
 
       <div style={styles.center}>
@@ -166,13 +182,19 @@ export default function Header() {
             style={{
               position: "absolute",
               right: 6,
-              top: 6,
-              padding: "6px 10px",
-              borderRadius: 12,
+              top: "50%",
+              transform: "translateY(-50%)",
+              padding: "6px 14px",
+              height: "32px",
+              borderRadius: 16,
               border: "none",
               background: colors.primary,
               color: "#fff",
               cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              lineHeight: 1,
             }}
             aria-label="Search"
           >
@@ -210,16 +232,37 @@ export default function Header() {
 
         {!token ? (
           <>
-            <Link to="/login" style={{ textDecoration: "none" }}>
+            <Link
+              to="/login"
+              style={{
+                textDecoration: "none",
+                display: "flex",
+                alignItems: "center",
+              }}
+            >
               <button style={styles.btn}>Увійти</button>
             </Link>
-            <Link to="/register" style={{ textDecoration: "none" }}>
+            <Link
+              to="/register"
+              style={{
+                textDecoration: "none",
+                display: "flex",
+                alignItems: "center",
+              }}
+            >
               <button style={styles.btnPrimary}>Реєстрація</button>
             </Link>
           </>
         ) : (
           <>
-            <Link to="/profile" style={{ textDecoration: "none" }}>
+            <Link
+              to="/profile"
+              style={{
+                textDecoration: "none",
+                display: "flex",
+                alignItems: "center",
+              }}
+            >
               <button style={styles.btn}>Профіль</button>
             </Link>
             <button

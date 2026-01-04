@@ -4,16 +4,23 @@ export default function BouquetCard({ bouquet }) {
   const { name, description, price, imageUrl } = bouquet || {};
   const addToCart = useCart((state) => state.addToCart);
 
+  const handleAddToCart = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    addToCart(bouquet);
+  };
+
   return (
-    <div style={{ border: "1px solid #eee", padding: 12, borderRadius: 8 }}>
+    <div className="card" style={{ height: "100%", display: "flex", flexDirection: "column" }}>
       <div
         style={{
-          background: "#fafafa",
-          height: 120,
-          marginBottom: 8,
+          background: "var(--color-bg-secondary)",
+          height: "240px",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
+          overflow: "hidden",
+          position: "relative",
         }}
       >
         {imageUrl ? (
@@ -22,38 +29,59 @@ export default function BouquetCard({ bouquet }) {
             alt={name}
             style={{
               width: "100%",
-              height: 120,
+              height: "100%",
               objectFit: "cover",
-              borderRadius: 4,
+              transition: "transform var(--transition-slow)",
             }}
+            onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.05)"}
+            onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
           />
         ) : (
-          <div style={{ color: "#999" }}>No image</div>
+          <div className="text-muted" style={{ fontSize: "14px" }}>
+            🎨 Немає зображення
+          </div>
         )}
       </div>
 
-      <div style={{ fontWeight: 700 }}>{name}</div>
-      <div style={{ color: "#666", margin: "6px 0" }}>{description}</div>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginTop: 8,
-        }}
-      >
-        <div style={{ fontWeight: 700 }}>
-          {typeof price === "number" ? `${price.toFixed(2)} ₴` : price}
-        </div>
-        <button
-          onClick={(e) => {
-            e.preventDefault();
-            addToCart(bouquet);
+      <div style={{ padding: "var(--spacing-md)", flex: 1, display: "flex", flexDirection: "column" }}>
+        <h3 style={{ fontSize: "1.125rem", marginBottom: "var(--spacing-sm)", fontWeight: 700 }}>
+          {name || "Без назви"}
+        </h3>
+        <p
+          style={{
+            color: "var(--color-text-secondary)",
+            fontSize: "14px",
+            marginBottom: "var(--spacing-md)",
+            flex: 1,
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
           }}
-          style={{ padding: "6px 8px", borderRadius: 6, cursor: "pointer" }}
         >
-          Add
-        </button>
+          {description || "Опис відсутній"}
+        </p>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginTop: "auto",
+            paddingTop: "var(--spacing-md)",
+            borderTop: "1px solid var(--color-border-light)",
+          }}
+        >
+          <div style={{ fontWeight: 700, fontSize: "1.25rem", color: "var(--color-primary)" }}>
+            {typeof price === "number" ? `${price.toFixed(2)} ₴` : price || "0 ₴"}
+          </div>
+          <button
+            onClick={handleAddToCart}
+            className="btn-primary btn-small"
+            style={{ fontSize: "14px" }}
+          >
+            🛒 Додати
+          </button>
+        </div>
       </div>
     </div>
   );
